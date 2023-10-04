@@ -11,17 +11,17 @@ import requests
 import singer
 
 
-endpoint = "https://api.exchangerate.host/timeseries"
+endpoint = "http://api.exchangerate.host/timeframe"
 logger = singer.get_logger()
 
 DATE_FORMAT = "%Y-%m-%d"
 
 
-def parse_rates(r, rate_date):
-    if not r["rates"][rate_date]:
+def parse_quotes(r, rate_date):
+    if not r["quotes"][rate_date]:
         return None
-    parsed = r["rates"][rate_date]
-    parsed[r["base"]] = 1.0
+    parsed = r["quotes"][rate_date]
+    parsed[r["source"]] = 1.0
     parsed["date"] = time.strftime(
         "%Y-%m-%dT%H:%M:%SZ", time.strptime(rate_date, DATE_FORMAT))
     return parsed
@@ -59,14 +59,16 @@ def make_schema(response: dict, dates: list[str]) -> dict:
     }
     last_date = dates[-1]
     # Populate the currencies
-    for rate in response["rates"][last_date]:
+    for rate in response["quotes"][last_date]:
         if rate not in schema["properties"]:
             # noinspection PyTypeChecker
             schema["properties"][rate] = {"type": ["null", "number"]}
     return schema
 
 
-def do_sync(base, start_date: str, end_date: Optional[str] = None) -> Optional[str]:
+def do_sync(base, 
+            access_key,
+            start_date: str, end_date: Optional[str] = None) -> Optional[str]:
     state = {"start_date": start_date}
     next_date = start_date
 
@@ -75,9 +77,10 @@ def do_sync(base, start_date: str, end_date: Optional[str] = None) -> Optional[s
             date.today() + timedelta(days=1)).strftime(DATE_FORMAT)
 
     params = {
-        "base": base,
+        "source": base,
         "start_date": start_date,
         "end_date": end_date,
+        "access_key": access_key
     }
 
     logger.info(json.dumps(params))
@@ -96,16 +99,15 @@ def do_sync(base, start_date: str, end_date: Optional[str] = None) -> Optional[s
         )
         singer.write_state(state)
         sys.exit(-1)
-
-    if start_date in response["rates"]:
-
+        
+    if start_date in response["quotes"]:
         # Write records ordered by the date
-        dates = sorted([d for d in response["rates"].keys()])
+        dates = sorted([d for d in response["quotes"].keys()])
 
         singer.write_schema("exchange_rate", make_schema(response, dates), "date")
 
         for d in dates:
-            record = parse_rates(response, d)
+            record = parse_quotes(response, d)
             if not record:
                 continue
             singer.write_records("exchange_rate", [record])
@@ -159,7 +161,7 @@ def main():
 
     next_date = start_date
     while next_date and datetime.strptime(next_date, DATE_FORMAT) < datetime.utcnow():
-        next_date = do_sync(config.get("base", "EUR"), next_date, end_date)
+        next_date = do_sync(config.get("base", "EUR"), config.get("access_key", ""), next_date, end_date)
 
 
 if __name__ == "__main__":

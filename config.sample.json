@@ -1,5 +1,6 @@
 {
     "base": "JPY",
     "start_date": "2021-04-01",
-    "end_date": "2021-04-06"
+    "end_date": "2021-04-06",
+    "access_key": "${TAP_EXCHANGERATEHOST_ACCESS_KEY}"
 }
