@@ -14,8 +14,8 @@ setup(
     description="Singer.io tap for extracting currency exchange rate data from the exchangerate.host API",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    author="Daigo Tanaka, Anelen Co., LLC",
-    url="http://github.com/anelendata/tap-exchangeratehost",
+    author="Alexander Mirzoev (inspired by Daigo Tanaka, Anelen Co., LLC)",
+    url="http://github.com/SashaAtStarstable/tap-exchangeratehost",
     classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: Apache Software License",
